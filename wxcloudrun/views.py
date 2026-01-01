@@ -205,11 +205,22 @@ def create_baby():
     if age_months > 36:
         return make_err_response('宝宝月龄超过36个月，不适合使用辅食管理', error_code='INVALID_PARAMS')
 
+    # 转换性别参数
+    gender_param = params.get('gender', 0)
+    if gender_param == 'male':
+        gender = 1
+    elif gender_param == 'female':
+        gender = 2
+    elif isinstance(gender_param, int):
+        gender = gender_param
+    else:
+        gender = 0
+
     # 创建宝宝
     baby = dao.create_baby(
         name=name,
         birthday=birthday,
-        gender=params.get('gender', 0),
+        gender=gender,
         created_by=user_id,
         avatar=params.get('avatar'),
         allergy_notes=params.get('allergy_notes'),
@@ -292,7 +303,15 @@ def update_baby(baby_id):
     if 'avatar' in params:
         baby.avatar = params['avatar']
     if 'gender' in params:
-        baby.gender = params['gender']
+        gender_param = params['gender']
+        if gender_param == 'male':
+            baby.gender = 1
+        elif gender_param == 'female':
+            baby.gender = 2
+        elif isinstance(gender_param, int):
+            baby.gender = gender_param
+        else:
+            baby.gender = 0
     if 'birthday' in params:
         try:
             baby.birthday = datetime.strptime(params['birthday'], '%Y-%m-%d').date()

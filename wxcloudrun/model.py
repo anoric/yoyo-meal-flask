@@ -15,7 +15,7 @@ class User(db.Model):
     nickname = db.Column(db.String(64), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True)
     session_key = db.Column(db.String(64), nullable=True)
-    token = db.Column(db.String(128), unique=True, nullable=True)
+    token = db.Column(db.String(512), unique=True, nullable=True)
     token_expires_at = db.Column(db.DateTime, nullable=True)
     current_baby_id = db.Column(db.BigInteger, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
