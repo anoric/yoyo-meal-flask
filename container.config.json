@@ -1,15 +1,11 @@
 {
-	// 本配置文件仅配合模板部署使用，为模板部署的服务生成「服务设置」的初始值。
-	// 模板部署结束后，后续服务发布与本配置文件完全无关，修改「服务设置」请到控制台操作。
-	// 复制模板代码自行开发请忽略本配置文件。
-	
-	"containerPort": 80,                          
-	"minNum": 0,                                    
-	"maxNum": 5,                                
-	"cpu": 1,                               
-	"mem": 2,                           
-	"policyType": "cpu",                       
-	"policyThreshold": 60,   
+	"containerPort": 80,
+	"minNum": 0,
+	"maxNum": 5,
+	"cpu": 1,
+	"mem": 2,
+	"policyType": "cpu",
+	"policyThreshold": 60,
 	"policyDetails": [
 		{
 			"PolicyType": "cpu",
@@ -20,13 +16,40 @@
 			"PolicyThreshold": 60
 		}
 	],
-	"envParams": {},         
-	"customLogs": "stdout",              
-	"initialDelaySeconds": 2,                  
-	"dataBaseName":"flask_demo",
+	"envParams": {},
+	"customLogs": "stdout",
+	"initialDelaySeconds": 2,
+	"dataBaseName":"yoyo_meal",
 	"executeSQLs":[
-		"CREATE DATABASE IF NOT EXISTS flask_demo;",
-		"USE flask_demo;",
-		"CREATE TABLE IF NOT EXISTS `Counters` (`id` int(11) NOT NULL AUTO_INCREMENT, `count` int(11) NOT NULL DEFAULT 1, `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE = InnoDB DEFAULT CHARSET = utf8;"
-	]    
+		"CREATE DATABASE IF NOT EXISTS yoyo_meal DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
+		"USE yoyo_meal;",
+
+		"CREATE TABLE IF NOT EXISTS `users` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户ID', `openid` VARCHAR(64) NOT NULL COMMENT '微信openid', `unionid` VARCHAR(64) DEFAULT NULL COMMENT '微信unionid', `nickname` VARCHAR(64) DEFAULT NULL COMMENT '用户昵称', `avatar_url` VARCHAR(512) DEFAULT NULL COMMENT '头像URL', `session_key` VARCHAR(64) DEFAULT NULL COMMENT '微信session_key', `token` VARCHAR(128) DEFAULT NULL COMMENT '登录token', `token_expires_at` DATETIME DEFAULT NULL COMMENT 'token过期时间', `current_baby_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '当前选中的宝宝ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), UNIQUE KEY `uk_openid` (`openid`), UNIQUE KEY `uk_token` (`token`), KEY `idx_unionid` (`unionid`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';",
+
+		"CREATE TABLE IF NOT EXISTS `babies` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '宝宝ID', `name` VARCHAR(32) NOT NULL COMMENT '宝宝名称', `avatar` VARCHAR(512) DEFAULT NULL COMMENT '宝宝头像URL', `birthday` DATE NOT NULL COMMENT '出生日期', `gender` TINYINT UNSIGNED DEFAULT 0 COMMENT '性别：0=未知，1=男，2=女', `allergy_notes` TEXT DEFAULT NULL COMMENT '过敏备注', `food_preferences` TEXT DEFAULT NULL COMMENT '食物偏好备注', `created_by` BIGINT UNSIGNED NOT NULL COMMENT '创建者用户ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), KEY `idx_created_by` (`created_by`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宝宝表';",
+
+		"CREATE TABLE IF NOT EXISTS `baby_managers` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID', `baby_id` BIGINT UNSIGNED NOT NULL COMMENT '宝宝ID', `user_id` BIGINT UNSIGNED NOT NULL COMMENT '管理员用户ID', `role` ENUM('owner', 'manager') NOT NULL DEFAULT 'manager' COMMENT '角色：owner=创建者，manager=被分享者', `invited_by` BIGINT UNSIGNED DEFAULT NULL COMMENT '邀请人用户ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', PRIMARY KEY (`id`), UNIQUE KEY `uk_baby_user` (`baby_id`, `user_id`), KEY `idx_user_id` (`user_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宝宝管理员关系表';",
+
+		"CREATE TABLE IF NOT EXISTS `foods` (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '食材ID', `name` VARCHAR(32) NOT NULL COMMENT '食材名称', `category` ENUM('staple', 'vegetable', 'fruit', 'meat', 'dairy', 'seafood') NOT NULL COMMENT '分类', `min_month` TINYINT UNSIGNED NOT NULL DEFAULT 6 COMMENT '建议最小月龄', `max_month` TINYINT UNSIGNED DEFAULT NULL COMMENT '建议最大月龄', `allergy_risk` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '过敏风险：0=低，1=中，2=高', `nutrition_info` VARCHAR(255) DEFAULT NULL COMMENT '营养信息', `cooking_tips` VARCHAR(255) DEFAULT NULL COMMENT '烹饪建议', `icon` VARCHAR(255) DEFAULT NULL COMMENT '食材图标URL', `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用', `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序权重', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), KEY `idx_category` (`category`), KEY `idx_min_month` (`min_month`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='食材库表';",
+
+		"CREATE TABLE IF NOT EXISTS `baby_food_status` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID', `baby_id` BIGINT UNSIGNED NOT NULL COMMENT '宝宝ID', `food_id` INT UNSIGNED NOT NULL COMMENT '食材ID', `status` ENUM('safe', 'allergic', 'testing') NOT NULL DEFAULT 'testing' COMMENT '状态：安全/过敏/排敏中', `testing_start_date` DATE DEFAULT NULL COMMENT '排敏开始日期', `testing_end_date` DATE DEFAULT NULL COMMENT '排敏结束日期', `allergy_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '过敏次数', `allergy_symptoms` VARCHAR(255) DEFAULT NULL COMMENT '过敏症状描述', `notes` VARCHAR(255) DEFAULT NULL COMMENT '备注', `updated_by` BIGINT UNSIGNED DEFAULT NULL COMMENT '最后更新用户ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), UNIQUE KEY `uk_baby_food` (`baby_id`, `food_id`), KEY `idx_status` (`status`), KEY `idx_testing_end_date` (`testing_end_date`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宝宝食材状态表';",
+
+		"CREATE TABLE IF NOT EXISTS `meal_plans` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '计划ID', `baby_id` BIGINT UNSIGNED NOT NULL COMMENT '宝宝ID', `plan_date` DATE NOT NULL COMMENT '计划日期', `meal_type` ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL DEFAULT 'lunch' COMMENT '餐次类型', `food_ids` VARCHAR(255) NOT NULL COMMENT '食材ID列表，逗号分隔', `new_food_id` INT UNSIGNED DEFAULT NULL COMMENT '新添加的食材ID', `is_ai_generated` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否AI生成', `notes` VARCHAR(255) DEFAULT NULL COMMENT '备注', `is_completed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否已完成', `completed_at` DATETIME DEFAULT NULL COMMENT '完成时间', `created_by` BIGINT UNSIGNED NOT NULL COMMENT '创建者用户ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), UNIQUE KEY `uk_baby_date_type` (`baby_id`, `plan_date`, `meal_type`), KEY `idx_plan_date` (`plan_date`), KEY `idx_new_food_id` (`new_food_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='辅食计划表';",
+
+		"CREATE TABLE IF NOT EXISTS `special_status` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID', `baby_id` BIGINT UNSIGNED NOT NULL COMMENT '宝宝ID', `status_type` ENUM('sick', 'vaccine', 'other') NOT NULL COMMENT '状态类型', `start_date` DATE NOT NULL COMMENT '开始日期', `end_date` DATE NOT NULL COMMENT '结束日期', `description` VARCHAR(255) DEFAULT NULL COMMENT '状态描述', `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否生效中', `created_by` BIGINT UNSIGNED NOT NULL COMMENT '创建者用户ID', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', PRIMARY KEY (`id`), KEY `idx_baby_active` (`baby_id`, `is_active`), KEY `idx_end_date` (`end_date`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='特殊状态表';",
+
+		"CREATE TABLE IF NOT EXISTS `invitations` (`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID', `code` VARCHAR(32) NOT NULL COMMENT '邀请码', `baby_id` BIGINT UNSIGNED NOT NULL COMMENT '宝宝ID', `inviter_id` BIGINT UNSIGNED NOT NULL COMMENT '邀请人用户ID', `expires_at` DATETIME NOT NULL COMMENT '过期时间', `max_uses` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '最大使用次数', `used_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用次数', `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否有效', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', PRIMARY KEY (`id`), UNIQUE KEY `uk_code` (`code`), KEY `idx_baby_id` (`baby_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邀请链接表';",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('大米', 'staple', 6, 0, '碳水化合物、维生素B', 1), ('小米', 'staple', 6, 0, '碳水化合物、铁、锌', 2), ('燕麦', 'staple', 6, 1, '膳食纤维、蛋白质', 3), ('糙米', 'staple', 8, 0, '膳食纤维、维生素B', 4), ('面条', 'staple', 7, 1, '碳水化合物（含麸质）', 5), ('馒头', 'staple', 8, 1, '碳水化合物（含麸质）', 6);",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('胡萝卜', 'vegetable', 6, 0, '胡萝卜素、维生素A', 10), ('南瓜', 'vegetable', 6, 0, '胡萝卜素、维生素C', 11), ('西兰花', 'vegetable', 6, 0, '维生素C、钙', 12), ('土豆', 'vegetable', 6, 0, '碳水化合物、钾', 13), ('红薯', 'vegetable', 6, 0, '膳食纤维、维生素A', 14), ('菠菜', 'vegetable', 7, 0, '铁、叶酸', 15), ('番茄', 'vegetable', 8, 1, '维生素C、番茄红素', 16), ('黄瓜', 'vegetable', 7, 0, '水分、维生素K', 17);",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('苹果', 'fruit', 6, 0, '维生素C、膳食纤维', 20), ('香蕉', 'fruit', 6, 0, '钾、维生素B6', 21), ('梨', 'fruit', 6, 0, '膳食纤维、水分', 22), ('牛油果', 'fruit', 6, 0, '健康脂肪、维生素E', 23), ('蓝莓', 'fruit', 8, 0, '抗氧化剂、维生素C', 24), ('草莓', 'fruit', 10, 2, '维生素C（高过敏风险）', 25), ('芒果', 'fruit', 12, 2, '维生素A、C（高过敏风险）', 26), ('橙子', 'fruit', 10, 1, '维生素C（可能刺激）', 27);",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('鸡肉', 'meat', 7, 0, '优质蛋白质、铁', 30), ('猪肉', 'meat', 7, 0, '蛋白质、维生素B1', 31), ('牛肉', 'meat', 8, 1, '铁、锌、蛋白质', 32), ('羊肉', 'meat', 10, 1, '蛋白质、铁', 33), ('鸭肉', 'meat', 9, 0, '蛋白质、不饱和脂肪酸', 34);",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('蛋黄', 'dairy', 8, 1, '卵磷脂、维生素D', 40), ('全蛋', 'dairy', 12, 2, '完整蛋白质（蛋白易过敏）', 41), ('酸奶', 'dairy', 8, 1, '钙、益生菌', 42), ('奶酪', 'dairy', 10, 1, '钙、蛋白质', 43), ('牛奶', 'dairy', 12, 2, '钙、蛋白质（1岁后）', 44);",
+
+		"INSERT INTO `foods` (`name`, `category`, `min_month`, `allergy_risk`, `nutrition_info`, `sort_order`) VALUES ('鳕鱼', 'seafood', 8, 1, 'DHA、蛋白质', 50), ('三文鱼', 'seafood', 9, 1, 'DHA、Omega-3', 51), ('虾', 'seafood', 12, 2, '蛋白质（高过敏风险）', 52), ('蟹', 'seafood', 18, 2, '蛋白质（高过敏风险）', 53), ('贝类', 'seafood', 24, 2, '锌、铁（高过敏风险）', 54);"
+	]
 }
