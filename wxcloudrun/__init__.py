@@ -11,8 +11,9 @@ app = Flask(__name__, instance_relative_config=True)
 app.config['DEBUG'] = config.DEBUG
 
 # 设定数据库链接
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{}:{}@{}/flask_demo'.format(config.username, config.password,
-                                                                             config.db_address)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{}:{}@{}/{}'.format(
+    config.username, config.password, config.db_address, config.db_name
+)
 
 # 初始化DB操作对象
 db = SQLAlchemy(app)
@@ -22,3 +23,7 @@ from wxcloudrun import views
 
 # 加载配置
 app.config.from_object('config')
+
+# 创建数据库表（如果不存在）
+with app.app_context():
+    db.create_all()

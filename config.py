@@ -7,6 +7,7 @@ DEBUG = True
 username = os.environ.get("MYSQL_USERNAME", 'root')
 password = os.environ.get("MYSQL_PASSWORD", 'root')
 db_address = os.environ.get("MYSQL_ADDRESS", '127.0.0.1:3306')
+db_name = os.environ.get("MYSQL_DATABASE", 'yoyo_meal')
 
 # 微信小程序配置
 WX_APPID = os.environ.get("WX_APPID", '')

@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, date, timedelta
 from typing import Optional, List
 
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy import and_, or_
 
 from wxcloudrun import db
@@ -60,7 +60,7 @@ def create_user(openid: str, nickname: str = None, avatar_url: str = None) -> Op
         db.session.add(user)
         db.session.commit()
         return user
-    except OperationalError as e:
+    except SQLAlchemyError as e:
         logger.error(f"create_user error: {e}")
         db.session.rollback()
         return None
