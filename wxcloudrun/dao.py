@@ -612,3 +612,55 @@ def use_invitation(invitation: Invitation) -> bool:
         logger.error(f"use_invitation error: {e}")
         db.session.rollback()
         return False
+
+
+# ==========================================
+# 食谱生成相关 DAO
+# ==========================================
+
+def get_food_by_name(name: str) -> Optional[Food]:
+    """根据名称获取食材"""
+    try:
+        return Food.query.filter(Food.name == name, Food.is_active == True).first()
+    except OperationalError as e:
+        logger.error(f"get_food_by_name error: {e}")
+        return None
+
+
+def batch_create_meal_plans(plans: List[dict], baby_id: int, created_by: int) -> int:
+    """批量创建辅食计划
+
+    Args:
+        plans: 计划列表，每个元素包含 plan_date, meal_type, food_ids, new_food_id(可选)
+        baby_id: 宝宝ID
+        created_by: 创建者ID
+
+    Returns:
+        成功创建的计划数量
+    """
+    try:
+        count = 0
+        for plan_data in plans:
+            # 检查是否已存在
+            existing = get_meal_plan(baby_id, plan_data['plan_date'], plan_data['meal_type'])
+            if existing:
+                continue
+
+            plan = MealPlan(
+                baby_id=baby_id,
+                plan_date=plan_data['plan_date'],
+                meal_type=plan_data['meal_type'],
+                food_ids=','.join(str(fid) for fid in plan_data['food_ids']),
+                new_food_id=plan_data.get('new_food_id'),
+                is_ai_generated=True,
+                created_by=created_by
+            )
+            db.session.add(plan)
+            count += 1
+
+        db.session.commit()
+        return count
+    except SQLAlchemyError as e:
+        logger.error(f"batch_create_meal_plans error: {e}")
+        db.session.rollback()
+        return 0

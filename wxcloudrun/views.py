@@ -14,6 +14,10 @@ from wxcloudrun.utils.auth import (
     check_baby_permission, generate_invite_code
 )
 from wxcloudrun.utils.wechat import code2session
+from wxcloudrun.services.meal_plan_generator import MealPlanGenerator
+import logging
+
+logger = logging.getLogger('log')
 
 
 # ==========================================
@@ -99,6 +103,17 @@ def auth_login():
             'age_months': baby.get_age_months(),
             'role': manager.role if manager else 'unknown'
         })
+
+    # 为每个宝宝补全未来7天的辅食计划
+    for baby in babies:
+        try:
+            generator = MealPlanGenerator(baby, user.id)
+            missing_dates = generator.get_missing_dates()
+            if missing_dates:
+                count = generator.generate_and_save(missing_dates)
+                logger.info(f"为宝宝 {baby.id} 补全了 {count} 个辅食计划")
+        except Exception as e:
+            logger.error(f"生成辅食计划失败: {e}")
 
     return make_succ_response({
         'token': token,
