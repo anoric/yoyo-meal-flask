@@ -367,9 +367,13 @@ def create_or_update_baby_food_status(
 
 
 def start_food_testing(baby_id: int, food_id: int, updated_by: int, days: int = 3) -> Optional[BabyFoodStatus]:
-    """开始食材排敏"""
+    """开始食材排敏
+
+    排敏期从今天开始，持续 days 天（包含今天）
+    例如：days=3, 今天1月5日，则排敏期为1月5日-1月7日
+    """
     today = date.today()
-    end_date = today + timedelta(days=days)
+    end_date = today + timedelta(days=days - 1)  # 包含今天，所以减1
 
     return create_or_update_baby_food_status(
         baby_id=baby_id,

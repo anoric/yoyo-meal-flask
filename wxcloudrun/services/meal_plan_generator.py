@@ -152,6 +152,8 @@ class MealPlanGenerator:
         special_status = self._get_special_status()
         testing_status = self._get_testing_food()
 
+        logger.info(f"[MealPlanGenerator] 开始生成计划: 宝宝={self.baby.id}, 餐次={meals}, 安全食材数={len(safe_foods)}")
+
         # 跟踪排敏状态
         current_testing_food: Optional[Food] = None
         testing_end_date: Optional[date] = None
@@ -160,6 +162,7 @@ class MealPlanGenerator:
         if testing_status:
             current_testing_food = dao.get_food_by_id(testing_status.food_id)
             testing_end_date = testing_status.testing_end_date
+            logger.info(f"[MealPlanGenerator] 已有排敏中食材: {current_testing_food.name if current_testing_food else 'None'}, 结束日期: {testing_end_date}")
 
         for plan_date in sorted(target_dates):
             testing_food_added_today = False
@@ -178,14 +181,16 @@ class MealPlanGenerator:
             if can_add_new and not in_testing_period:
                 next_food = self._select_next_new_food()
                 if next_food:
+                    logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 在 {plan_date} 开始排敏: {next_food.name} (id={next_food.id})")
                     current_testing_food = next_food
                     testing_end_date = plan_date + timedelta(days=self.TESTING_DAYS - 1)
                     in_testing_period = True
                     # 开始排敏
                     dao.start_food_testing(self.baby.id, next_food.id, self.user_id, self.TESTING_DAYS)
-                    # 刷新安全食材缓存
+                    # 刷新所有缓存
                     self._safe_foods = None
                     self._safe_foods_by_category = None
+                    self._all_food_statuses = None  # 重要：刷新食材状态缓存
                     safe_foods = self._get_safe_foods()
 
             # 检查是否有同类备选食材
