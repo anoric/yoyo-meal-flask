@@ -95,6 +95,7 @@ def auth_login():
         babies_data.append({
             'id': baby.id,
             'name': baby.name,
+            'birthday': baby.birthday.isoformat() if baby.birthday else None,
             'age_months': baby.get_age_months(),
             'role': manager.role if manager else 'unknown'
         })
@@ -127,6 +128,7 @@ def auth_me():
         babies_data.append({
             'id': baby.id,
             'name': baby.name,
+            'birthday': baby.birthday.isoformat() if baby.birthday else None,
             'age_months': baby.get_age_months(),
             'role': manager.role if manager else 'unknown'
         })
