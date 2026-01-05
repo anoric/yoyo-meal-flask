@@ -116,11 +116,16 @@ class MealPlanGenerator:
         if target_dates is None:
             target_dates = self.get_missing_dates()
 
+        logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 月龄: {self.age_months}, 缺失日期: {target_dates}")
+
         if not target_dates:
+            logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 没有缺失的计划日期")
             return 0
 
         # 生成计划
         plans = self._generate_plans(target_dates)
+
+        logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 生成了 {len(plans)} 个计划")
 
         if not plans:
             return 0
@@ -289,6 +294,7 @@ class MealPlanGenerator:
         """
         # 检查特殊状态
         if self._get_special_status():
+            logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 有特殊状态，不添加新食材")
             return None
 
         # 获取已有状态的食材ID
@@ -297,11 +303,13 @@ class MealPlanGenerator:
 
         # 获取当前月龄可用的所有食材
         available_foods = dao.get_all_foods(max_month=self.age_months)
+        logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 月龄 {self.age_months}, 可用食材数: {len(available_foods)}, 已知食材数: {len(known_food_ids)}")
 
         # 过滤掉已知的食材
         candidate_foods = [f for f in available_foods if f.id not in known_food_ids]
 
         if not candidate_foods:
+            logger.info(f"[MealPlanGenerator] 宝宝 {self.baby.id} 没有可选的新食材")
             return None
 
         # 特殊处理：如果没有任何安全食材，优先选择高铁米粉

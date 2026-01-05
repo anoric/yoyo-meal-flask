@@ -105,15 +105,19 @@ def auth_login():
         })
 
     # 为每个宝宝补全未来7天的辅食计划
+    logger.info(f"[Login] 用户 {user.id} 有 {len(babies)} 个宝宝")
     for baby in babies:
         try:
+            logger.info(f"[Login] 为宝宝 {baby.id} ({baby.name}) 生成计划, 月龄: {baby.get_age_months()}")
             generator = MealPlanGenerator(baby, user.id)
             missing_dates = generator.get_missing_dates()
             if missing_dates:
                 count = generator.generate_and_save(missing_dates)
-                logger.info(f"为宝宝 {baby.id} 补全了 {count} 个辅食计划")
+                logger.info(f"[Login] 为宝宝 {baby.id} 补全了 {count} 个辅食计划")
+            else:
+                logger.info(f"[Login] 宝宝 {baby.id} 不需要补全计划")
         except Exception as e:
-            logger.error(f"生成辅食计划失败: {e}")
+            logger.error(f"[Login] 生成辅食计划失败: {e}", exc_info=True)
 
     return make_succ_response({
         'token': token,
