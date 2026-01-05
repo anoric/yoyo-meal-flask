@@ -152,6 +152,17 @@ def auth_me():
             'role': manager.role if manager else 'unknown'
         })
 
+    # 为每个宝宝补全未来7天的辅食计划
+    for baby in babies:
+        try:
+            generator = MealPlanGenerator(baby, user.id)
+            missing_dates = generator.get_missing_dates()
+            if missing_dates:
+                count = generator.generate_and_save(missing_dates)
+                logger.info(f"[auth_me] 为宝宝 {baby.id} 补全了 {count} 个辅食计划")
+        except Exception as e:
+            logger.error(f"[auth_me] 生成辅食计划失败: {e}", exc_info=True)
+
     return make_succ_response({
         'user': user.to_dict(),
         'babies': babies_data,
