@@ -99,6 +99,7 @@ def auth_login():
         babies_data.append({
             'id': baby.id,
             'name': baby.name,
+            'gender': baby.gender,
             'birthday': baby.birthday.isoformat() if baby.birthday else None,
             'age_months': baby.get_age_months(),
             'role': manager.role if manager else 'unknown'
@@ -147,6 +148,7 @@ def auth_me():
         babies_data.append({
             'id': baby.id,
             'name': baby.name,
+            'gender': baby.gender,
             'birthday': baby.birthday.isoformat() if baby.birthday else None,
             'age_months': baby.get_age_months(),
             'role': manager.role if manager else 'unknown'
@@ -643,6 +645,49 @@ def get_baby_foods(baby_id):
     })
 
 
+@app.route('/api/babies/<int:baby_id>/foods/batch', methods=['POST'])
+@login_required
+def batch_update_baby_food_status(baby_id):
+    """批量更新宝宝的食材状态
+
+    请求参数:
+        items: [{ food_id, status, notes? }]
+    """
+    user_id = get_current_user_id()
+
+    if not check_baby_permission(baby_id, user_id):
+        return make_err_response('无权限操作', error_code='PERMISSION_DENIED')
+
+    params = request.get_json() or {}
+    items = params.get('items', [])
+
+    if not items:
+        return make_succ_response({'message': '无需更新', 'updated_count': 0})
+
+    updated_count = 0
+    for item in items:
+        food_id = item.get('food_id')
+        status = item.get('status')
+
+        if not food_id or status not in ['safe', 'allergic', 'testing']:
+            continue
+
+        food_status = dao.create_or_update_baby_food_status(
+            baby_id=baby_id,
+            food_id=food_id,
+            status=status,
+            updated_by=user_id,
+            notes=item.get('notes')
+        )
+        if food_status:
+            updated_count += 1
+
+    return make_succ_response({
+        'message': f'已更新 {updated_count} 个食材状态',
+        'updated_count': updated_count
+    })
+
+
 @app.route('/api/babies/<int:baby_id>/foods/<int:food_id>', methods=['PUT'])
 @login_required
 def update_baby_food_status(baby_id, food_id):
@@ -794,9 +839,19 @@ def get_meal_plans(baby_id):
             'new_food': new_food_data
         })
 
+    # 根据月龄计算应显示的餐次
+    age_months = baby.get_age_months()
+    if age_months <= 6:
+        meals_for_age = ['lunch']
+    elif age_months <= 8:
+        meals_for_age = ['lunch', 'dinner']
+    else:
+        meals_for_age = ['breakfast', 'lunch', 'dinner']
+
     return make_succ_response({
         'date': plan_date.isoformat(),
-        'baby_age_months': baby.get_age_months(),
+        'baby_age_months': age_months,
+        'meals_for_age': meals_for_age,  # 根据月龄应显示的餐次
         'special_status': special_status.to_dict() if special_status else None,
         'can_add_new_food': can_add_new_food,
         'testing_food': {
