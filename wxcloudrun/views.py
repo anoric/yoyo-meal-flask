@@ -1032,3 +1032,94 @@ def end_special_status(baby_id, status_id):
         return make_err_response('操作失败', error_code='END_FAILED')
 
     return make_succ_response({'message': '特殊状态已结束'})
+
+
+# ==========================================
+# Agent 智能助手模块 API
+# ==========================================
+
+from flask import Response, stream_with_context
+import json as json_module
+
+@app.route('/api/babies/<int:baby_id>/agent/chat', methods=['POST'])
+@login_required
+def agent_chat(baby_id):
+    """
+    Agent 对话接口 (SSE流式响应)
+
+    请求参数:
+        message: 用户消息
+        conversation_id: 对话ID
+
+    响应:
+        SSE 流式响应，每行格式: data: {...json...}
+        结束标记: data: [DONE]
+    """
+    from wxcloudrun.services.agent_service import AgentService
+
+    user_id = get_current_user_id()
+
+    if not check_baby_permission(baby_id, user_id):
+        return make_err_response('无权限访问', error_code='PERMISSION_DENIED')
+
+    baby = dao.get_baby_by_id(baby_id)
+    if not baby:
+        return make_err_response('宝宝不存在', error_code='NOT_FOUND')
+
+    params = request.get_json() or {}
+    message = params.get('message')
+    conversation_id = params.get('conversation_id')
+
+    if not message:
+        return make_err_response('缺少消息内容', error_code='INVALID_PARAMS')
+
+    if not conversation_id:
+        return make_err_response('缺少对话ID', error_code='INVALID_PARAMS')
+
+    agent = AgentService(baby, user_id)
+
+    def generate():
+        try:
+            for chunk in agent.chat_stream(message, conversation_id):
+                data = json_module.dumps(chunk, ensure_ascii=False)
+                yield f"data: {data}\n\n"
+        except Exception as e:
+            logger.error(f"Agent chat error: {e}", exc_info=True)
+            error_data = json_module.dumps({'type': 'error', 'content': '服务异常，请稍后重试'}, ensure_ascii=False)
+            yield f"data: {error_data}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
+
+@app.route('/api/babies/<int:baby_id>/agent/conversation/<conversation_id>', methods=['GET'])
+@login_required
+def get_conversation(baby_id, conversation_id):
+    """获取对话历史"""
+    from wxcloudrun.services.agent_service import conversation_store
+
+    user_id = get_current_user_id()
+
+    if not check_baby_permission(baby_id, user_id):
+        return make_err_response('无权限访问', error_code='PERMISSION_DENIED')
+
+    conversation = conversation_store.get(conversation_id)
+    if not conversation:
+        return make_succ_response({'messages': []})
+
+    # 验证对话属于当前宝宝
+    if conversation.get('baby_id') != baby_id:
+        return make_err_response('对话不存在', error_code='NOT_FOUND')
+
+    return make_succ_response({
+        'messages': conversation.get('messages', [])
+    })
